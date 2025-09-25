@@ -5,7 +5,7 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Create a new EC2 key pair for SSH access
+# Create a new EC2 key pair from your public key
 resource "aws_key_pair" "docker_key" {
   key_name   = var.ssh_key_name
   public_key = file(var.public_key_path)
@@ -26,13 +26,12 @@ resource "aws_instance" "docker_host" {
 # Create an Elastic IP and associate it with the EC2 instance
 resource "aws_eip" "docker_eip" {
   instance = aws_instance.docker_host.id
-  vpc      = true
 }
 
-# Create a security group to allow SSH, HTTP, and the Node app port
+# Create a security group to allow SSH and HTTP traffic
 resource "aws_security_group" "docker_sg" {
   name        = "docker-security-group"
-  description = "Allow SSH, HTTP, and Node app traffic"
+  description = "Allow SSH and HTTP traffic"
 
   ingress {
     from_port   = 22
@@ -44,13 +43,6 @@ resource "aws_security_group" "docker_sg" {
   ingress {
     from_port   = 80
     to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 3000
-    to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -79,14 +71,15 @@ resource "null_resource" "docker_setup" {
 
   provisioner "remote-exec" {
     inline = [
-      "sudo apt-get update -y",
-      "sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release",
-      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg",
-      "echo \"deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
-      "sudo apt-get update -y",
-      "sudo apt-get install -y docker-ce docker-ce-cli containerd.io",
-      "sudo usermod -aG docker ubuntu",
-      "sudo docker run -d -p 80:80 --name mynginx nginx:latest"
+      "sudo su",
+      "apt-get update -y",
+      "apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release",
+      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg",
+      "echo \"deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | tee /etc/apt/sources.list.d/docker.list > /dev/null",
+      "apt-get update -y",
+      "apt-get install -y docker-ce docker-ce-cli containerd.io",
+      "usermod -aG docker ubuntu",
+      "docker run -d -p 80:80 --name mynginx nginx:latest"
     ]
   }
 }

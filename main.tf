@@ -24,7 +24,7 @@ provider "aws" {
 }
 
 #########################################
-# Key Pair
+# SSH Key Pair
 #########################################
 resource "aws_key_pair" "my_key" {
   key_name   = "my-ec2-key"
@@ -96,37 +96,44 @@ resource "aws_instance" "docker_host" {
 # Docker Provider (connect to EC2)
 #########################################
 provider "docker" {
-  host           = "ssh://ec2-user@${aws_instance.docker_host.public_ip}"
+  host = "ssh://ec2-user@${aws_instance.docker_host.public_ip}"
+}
+
+#########################################
+# Docker Images
+#########################################
+resource "docker_image" "nginx_image" {
+  name        = "nginx:latest"
+  keep_locally = false
+}
+
+resource "docker_image" "node_image" {
+  name        = "node:18"
+  keep_locally = false
 }
 
 #########################################
 # Docker Containers
 #########################################
-# Nginx Container
-resource "docker_image" "nginx_image" {
-  name = "nginx:latest"
-}
-
 resource "docker_container" "nginx_container" {
   name  = "nginx"
-  image = docker_image.nginx_image.latest
+  image = docker_image.nginx_image.name
   ports {
     internal = 80
     external = 80
   }
 }
 
-# Node.js Container
-resource "docker_image" "node_image" {
-  name = "node:18"
-}
-
 resource "docker_container" "node_container" {
   name  = "node-app"
-  image = docker_image.node_image.latest
+  image = docker_image.node_image.name
   ports {
     internal = 3000
     external = 3000
   }
-  command = ["bash", "-c", "npm install -g http-server && echo 'Hello from Node.js' > index.html && http-server -p 3000"]
+  command = [
+    "bash",
+    "-c",
+    "npm install -g http-server && echo 'Hello from Node.js' > index.html && http-server -p 3000"
+  ]
 }

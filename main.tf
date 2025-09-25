@@ -89,7 +89,6 @@ resource "aws_instance" "docker_host" {
 #########################################
 provider "docker" {
   host            = "ssh://ec2-user@${aws_instance.docker_host.public_ip}"
-  ssh_private_key = file(var.private_key_path)
 }
 
 #########################################

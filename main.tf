@@ -88,7 +88,7 @@ resource "aws_instance" "docker_host" {
 # Docker Provider (connect to EC2 using PEM)
 #########################################
 provider "docker" {
-  host            = "ssh://ec2-user@${aws_instance.docker_host.public_ip}"
+  host = "ssh://ec2-user@${aws_instance.docker_host.public_ip}"
 }
 
 #########################################

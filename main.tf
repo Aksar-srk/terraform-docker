@@ -12,7 +12,7 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region = "us-east-1"
 }
 
 # Security Group
@@ -52,8 +52,8 @@ resource "aws_security_group" "docker_sg" {
 # EC2 Instance
 resource "aws_instance" "docker_host" {
   ami           = "ami-0c02fb55956c7d316" # Amazon Linux 2
-  instance_type = var.instance_type
-  key_name      = var.key_name
+  instance_type = "t2.micro"
+  key_name      = "devops-key"
   security_groups = [aws_security_group.docker_sg.name]
 
   user_data = <<-EOF
@@ -72,13 +72,12 @@ resource "aws_instance" "docker_host" {
 # Elastic IP
 resource "aws_eip" "docker_eip" {
   instance = aws_instance.docker_host.id
-  vpc      = true
 }
 
-# Docker provider for remote EC2
+# Docker provider to connect to EC2
 provider "docker" {
   host        = "ssh://ec2-user@${aws_eip.docker_eip.public_ip}"
-  private_key = file(var.private_key_path)
+  private_key = file("C:/Users/aksar/devops.pem")
 }
 
 # Docker Images
@@ -111,4 +110,17 @@ resource "docker_container" "node_container" {
   }
 
   command = ["bash", "-c", "npm install -g http-server && echo 'Hello from Node.js' > index.html && http-server -p 3000"]
+}
+
+# Outputs
+output "ec2_public_ip" {
+  value = aws_eip.docker_eip.public_ip
+}
+
+output "nginx_url" {
+  value = "http://${aws_eip.docker_eip.public_ip}"
+}
+
+output "node_app_url" {
+  value = "http://${aws_eip.docker_eip.public_ip}:3000"
 }

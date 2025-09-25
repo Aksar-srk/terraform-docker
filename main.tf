@@ -24,14 +24,6 @@ provider "aws" {
 }
 
 #########################################
-# SSH Key Pair
-#########################################
-resource "aws_key_pair" "my_key" {
-  key_name   = "my-ec2-key"
-  public_key = file(var.public_key_path)
-}
-
-#########################################
 # Security Group
 #########################################
 resource "aws_security_group" "docker_sg" {
@@ -73,7 +65,7 @@ resource "aws_security_group" "docker_sg" {
 resource "aws_instance" "docker_host" {
   ami           = var.ami_id
   instance_type = var.instance_type
-  key_name      = aws_key_pair.my_key.key_name
+  key_name      = "devops-key"   # name only for reference, your PEM used for SSH
   security_groups = [aws_security_group.docker_sg.name]
 
   root_block_device {
@@ -93,22 +85,23 @@ resource "aws_instance" "docker_host" {
 }
 
 #########################################
-# Docker Provider (connect to EC2)
+# Docker Provider (connect to EC2 using PEM)
 #########################################
 provider "docker" {
-  host = "ssh://ec2-user@${aws_instance.docker_host.public_ip}"
+  host            = "ssh://ec2-user@${aws_instance.docker_host.public_ip}"
+  ssh_private_key = file(var.private_key_path)
 }
 
 #########################################
 # Docker Images
 #########################################
 resource "docker_image" "nginx_image" {
-  name        = "nginx:latest"
+  name         = "nginx:latest"
   keep_locally = false
 }
 
 resource "docker_image" "node_image" {
-  name        = "node:18"
+  name         = "node:18"
   keep_locally = false
 }
 

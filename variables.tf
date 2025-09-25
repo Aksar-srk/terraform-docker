@@ -1,24 +1,24 @@
 variable "aws_region" {
   description = "AWS region"
-  default     = "us-east-1"   # N. Virginia
+  default     = "us-east-1"
 }
 
-variable "instance_type" {
-  description = "EC2 instance type (Free Tier eligible)"
-  default     = "t2.micro"
+variable "private_key_path" {
+  description = "Path to your AWS PEM private key"
+  default     = "C:\\Users\\aksar\\devops.pem"
 }
 
 variable "ami_id" {
-  description = "Amazon Linux 2 AMI ID (Free Tier eligible)"
-  default     = "ami-0c55b159cbfafe1f0" 
+  description = "AMI ID for EC2 (Amazon Linux 2)"
+  default     = "ami-0c02fb55956c7d316" # N. Virginia Amazon Linux 2 AMI
 }
 
-variable "public_key_path" {
-  description = "Path to your public SSH key"
-  default     = "~/.ssh/id_rsa.pub"
+variable "instance_type" {
+  description = "EC2 instance type"
+  default     = "t2.micro"  # Free Tier
 }
 
 variable "ebs_volume_size" {
-  description = "EBS root volume size in GB (Free Tier safe)"
+  description = "Root EBS volume size in GB"
   default     = 8
 }

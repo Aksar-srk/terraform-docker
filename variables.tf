@@ -1,15 +1,24 @@
 variable "aws_region" {
-  default = "us-east-1"
+  description = "AWS region"
+  default     = "us-east-1"
 }
 
-variable "instance_type" {
-  default = "t2.micro"
+variable "ec2_instance_type" {
+  description = "EC2 instance type"
+  default     = "t2.micro"
+}
+
+variable "ami" {
+  description = "Amazon Linux 2 AMI"
+  default     = "ami-0c02fb55956c7d316"
 }
 
 variable "key_name" {
-  default = "devops-key"
+  description = "AWS key pair name"
+  default     = "devops-key"
 }
 
-variable "private_key_path" {
-  default = "C:/Users/aksar/devops.pem"
+variable "ssh_key_path" {
+  description = "Path to your private SSH key"
+  default     = "C:/Users/aksar/devops.pem"
 }

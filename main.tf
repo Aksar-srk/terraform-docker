@@ -1,3 +1,16 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.14"
+    }
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "~> 3.6"
+    }
+  }
+}
+
 provider "aws" {
   region = var.aws_region
 }
@@ -62,10 +75,9 @@ resource "aws_eip" "docker_eip" {
   vpc      = true
 }
 
-# Docker provider to manage containers on EC2
+# Docker provider for remote EC2
 provider "docker" {
-  host = "ssh://ec2-user@${aws_eip.docker_eip.public_ip}"
-  # Use your PEM key path
+  host        = "ssh://ec2-user@${aws_eip.docker_eip.public_ip}"
   private_key = file(var.private_key_path)
 }
 

@@ -7,11 +7,9 @@ variable "instance_type" {
 }
 
 variable "key_name" {
-  description = "AWS EC2 key pair name"
-  default     = "devops-key"
+  default = "devops-key"
 }
 
 variable "private_key_path" {
-  description = "Path to your PEM private key file"
-  default     = "C:/Users/aksar/devops.pem"  # Update if different
+  default = "C:/Users/aksar/devops.pem"
 }

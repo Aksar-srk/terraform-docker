@@ -1,19 +1,22 @@
+# variables.tf
+
 variable "aws_region" {
-  description = "AWS region"
+  description = "The AWS region to create resources in."
+  type        = string
   default     = "us-east-1"
 }
 
-variable "ec2_instance_type" {
-  description = "EC2 instance type"
-  default     = "t2.micro"
+variable "ssh_key_name" {
+  description = "The name of the AWS EC2 key pair to use for the instance."
+  type        = string
 }
 
-variable "ami" {
-  description = "Amazon Linux 2 AMI"
-  default     = "ami-0c02fb55956c7d316"
+variable "public_key_path" {
+  description = "The path to the local public key file for the EC2 key pair."
+  type        = string
 }
 
-variable "key_name" {
-  description = "AWS key pair name"
-  default     = "devops-key"
+variable "private_key_path" {
+  description = "The path to the local private key file for SSH access."
+  type        = string
 }

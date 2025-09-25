@@ -1,25 +1,38 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.14"
-    }
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "~> 3.6"
-    }
-  }
-  required_version = ">= 1.5.0"
-}
+# main.tf
 
+# Configure the AWS provider
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
 
-# Create Security Group
+# Create a new EC2 key pair for SSH access
+resource "aws_key_pair" "docker_key" {
+  key_name   = var.ssh_key_name
+  public_key = file(var.public_key_path)
+}
+
+# Create an EC2 instance to host Docker
+resource "aws_instance" "docker_host" {
+  ami           = "ami-053b04d16d0046e72" # Ubuntu 22.04 LTS
+  instance_type = "t2.micro"
+  key_name      = aws_key_pair.docker_key.key_name
+  security_groups = [aws_security_group.docker_sg.name]
+
+  tags = {
+    Name = "docker-host"
+  }
+}
+
+# Create an Elastic IP and associate it with the EC2 instance
+resource "aws_eip" "docker_eip" {
+  instance = aws_instance.docker_host.id
+  vpc      = true
+}
+
+# Create a security group to allow SSH, HTTP, and the Node app port
 resource "aws_security_group" "docker_sg" {
-  name        = "docker-sg"
-  description = "Allow SSH, HTTP, Node.js"
+  name        = "docker-security-group"
+  description = "Allow SSH, HTTP, and Node app traffic"
 
   ingress {
     from_port   = 22
@@ -50,61 +63,30 @@ resource "aws_security_group" "docker_sg" {
   }
 }
 
-# Create EC2 instance
-resource "aws_instance" "docker_host" {
-  ami                    = "ami-0c02fb55956c7d316" # Amazon Linux 2 US-East-1
-  instance_type          = "t2.micro"
-  key_name               = var.ssh_key_name
-  security_groups        = [aws_security_group.docker_sg.name]
-
-  user_data = <<-EOT
-              #!/bin/bash
-              yum update -y
-              amazon-linux-extras install docker -y
-              service docker start
-              usermod -aG docker ec2-user
-            EOT
-
-  tags = {
-    Name = "docker-ec2"
+# Use a null_resource to run a remote provisioner to install Docker and run Nginx
+resource "null_resource" "docker_setup" {
+  triggers = {
+    instance_id = aws_instance.docker_host.id
   }
-}
 
-# Elastic IP for EC2
-resource "aws_eip" "docker_eip" {
-  instance = aws_instance.docker_host.id
-}
-
-# Docker provider using Elastic IP + SSH agent
-provider "docker" {
-  host           = "ssh://ec2-user@${aws_eip.docker_eip.public_ip}"
-  ssh_agent_auth = true
-}
-
-# Docker images
-resource "docker_image" "nginx_image" {
-  name = "nginx:latest"
-}
-
-resource "docker_image" "node_image" {
-  name = "node:18-alpine"
-}
-
-# Docker containers
-resource "docker_container" "nginx_container" {
-  name  = "nginx-server"
-  image = docker_image.nginx_image.latest
-  ports {
-    internal = 80
-    external = 80
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    host        = aws_eip.docker_eip.public_ip
+    private_key = file(var.private_key_path)
+    timeout     = "5m"
   }
-}
 
-resource "docker_container" "node_container" {
-  name  = "node-app"
-  image = docker_image.node_image.latest
-  ports {
-    internal = 3000
-    external = 3000
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt-get update -y",
+      "sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release",
+      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg",
+      "echo \"deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+      "sudo apt-get update -y",
+      "sudo apt-get install -y docker-ce docker-ce-cli containerd.io",
+      "sudo usermod -aG docker ubuntu",
+      "sudo docker run -d -p 80:80 --name mynginx nginx:latest"
+    ]
   }
 }

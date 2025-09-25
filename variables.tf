@@ -17,8 +17,3 @@ variable "key_name" {
   description = "AWS key pair name"
   default     = "devops-key"
 }
-
-variable "ssh_key_path" {
-  description = "Path to your private SSH key"
-  default     = "C:/Users/aksar/devops.pem"
-}

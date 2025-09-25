@@ -9,13 +9,14 @@ terraform {
       version = "~> 3.6"
     }
   }
+  required_version = ">= 1.5.0"
 }
 
 provider "aws" {
-  region = var.aws_region
+  region = "us-east-1"
 }
 
-# Security Group
+# Create Security Group
 resource "aws_security_group" "docker_sg" {
   name        = "docker-sg"
   description = "Allow SSH, HTTP, Node.js"
@@ -49,51 +50,50 @@ resource "aws_security_group" "docker_sg" {
   }
 }
 
-# EC2 Instance
+# Create EC2 instance
 resource "aws_instance" "docker_host" {
-  ami           = var.ami
-  instance_type = var.ec2_instance_type
-  key_name      = var.key_name
-  security_groups = [aws_security_group.docker_sg.name]
+  ami                    = "ami-0c02fb55956c7d316" # Amazon Linux 2 US-East-1
+  instance_type          = "t2.micro"
+  key_name               = var.ssh_key_name
+  security_groups        = [aws_security_group.docker_sg.name]
 
-  user_data = <<-EOF
-    #!/bin/bash
-    yum update -y
-    amazon-linux-extras install docker -y
-    service docker start
-    usermod -aG docker ec2-user
-  EOF
+  user_data = <<-EOT
+              #!/bin/bash
+              yum update -y
+              amazon-linux-extras install docker -y
+              service docker start
+              usermod -aG docker ec2-user
+            EOT
 
   tags = {
     Name = "docker-ec2"
   }
 }
 
-# Elastic IP
+# Elastic IP for EC2
 resource "aws_eip" "docker_eip" {
   instance = aws_instance.docker_host.id
 }
 
-# Docker provider (connects to EC2 via SSH)
+# Docker provider using Elastic IP + SSH agent
 provider "docker" {
-  host        = "ssh://ec2-user@${aws_eip.docker_eip.public_ip}"
-  private_key = file(var.ssh_key_path)
+  host           = "ssh://ec2-user@${aws_eip.docker_eip.public_ip}"
+  ssh_agent_auth = true
 }
 
-# Docker Images
+# Docker images
 resource "docker_image" "nginx_image" {
   name = "nginx:latest"
 }
 
 resource "docker_image" "node_image" {
-  name = "node:18"
+  name = "node:18-alpine"
 }
 
-# Docker Containers
+# Docker containers
 resource "docker_container" "nginx_container" {
-  name  = "nginx"
+  name  = "nginx-server"
   image = docker_image.nginx_image.latest
-
   ports {
     internal = 80
     external = 80
@@ -103,11 +103,8 @@ resource "docker_container" "nginx_container" {
 resource "docker_container" "node_container" {
   name  = "node-app"
   image = docker_image.node_image.latest
-
   ports {
     internal = 3000
     external = 3000
   }
-
-  command = ["bash", "-c", "npm install -g http-server && echo 'Hello from Node.js' > index.html && http-server -p 3000"]
 }

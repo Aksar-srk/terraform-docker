@@ -3,7 +3,7 @@ output "ec2_public_ip" {
 }
 
 output "nginx_url" {
-  value = "http://${aws_eip.docker_eip.public_ip}"
+  value = "http://${aws_eip.docker_eip.public_ip}:80"
 }
 
 output "node_app_url" {

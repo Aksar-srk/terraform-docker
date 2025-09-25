@@ -13,7 +13,7 @@ resource "aws_key_pair" "docker_key" {
 
 # Create an EC2 instance to host Docker
 resource "aws_instance" "docker_host" {
-  ami           = "ami-053b04d16d0046e72" # Ubuntu 22.04 LTS
+  ami           = "ami-0360c520857e3138f" # Ubuntu 22.04 LTS
   instance_type = "t2.micro"
   key_name      = aws_key_pair.docker_key.key_name
   security_groups = [aws_security_group.docker_sg.name]

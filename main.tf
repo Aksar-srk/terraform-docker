@@ -13,10 +13,11 @@ resource "aws_key_pair" "docker_key" {
 
 # Create an EC2 instance to host Docker
 resource "aws_instance" "docker_host" {
-  ami           = "ami-0360c520857e3138f" # Ubuntu 22.04 LTS
-  instance_type = "t2.micro"
-  key_name      = aws_key_pair.docker_key.key_name
-  security_groups = [aws_security_group.docker_sg.name]
+  ami             = "ami-0360c520857e3138f" # Ubuntu 22.04 LTS
+  instance_type   = "t2.micro"
+  key_name        = aws_key_pair.docker_key.key_name
+  vpc_security_group_ids = [aws_security_group.docker_sg.id]
+  subnet_id       = "subnet-064a38f726cb62cae"
 
   tags = {
     Name = "docker-host"
@@ -32,6 +33,7 @@ resource "aws_eip" "docker_eip" {
 resource "aws_security_group" "docker_sg" {
   name        = "docker-security-group"
   description = "Allow SSH and HTTP traffic"
+  vpc_id      = "vpc-003506f72559404e4"
 
   ingress {
     from_port   = 22
